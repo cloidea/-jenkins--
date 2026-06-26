@@ -35,6 +35,8 @@ pipeline {
         stage('Setup Test Infrastructure') {
             steps {
                 script {
+                    // 先停掉可能残留的旧容器，避免名称冲突
+                    sh 'docker compose down --remove-orphans 2>/dev/null || true'
                     sh 'docker compose up -d'
 
                     sh '''
