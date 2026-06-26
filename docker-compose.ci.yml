@@ -1,0 +1,18 @@
+# ============================================================
+# CI 环境覆盖文件 — 让 WordPress/MySQL 加入 Jenkins 网络
+# 用法: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+# 效果: Jenkins 容器可以直接用 wc_site:8080 访问 WordPress
+# ============================================================
+
+services:
+  db:
+    networks:
+      - jenkins-net
+
+  wordpress:
+    networks:
+      - jenkins-net
+
+networks:
+  jenkins-net:
+    external: true

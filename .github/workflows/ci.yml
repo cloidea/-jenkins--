@@ -1,0 +1,84 @@
+name: E-Commerce Test CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  healthcheck:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run health check
+        run: cd demostore_automation && python -m pytest tests/test_healthcheck.py -v
+
+  frontend-tests:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    needs: healthcheck
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Chrome
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq google-chrome-stable
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run frontend smoke tests
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          BROWSER: headlesschrome
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_TABLE_PREFIX: ${{ secrets.DB_TABLE_PREFIX }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          WOO_KEY: ${{ secrets.WOO_KEY }}
+          WOO_SECRET: ${{ secrets.WOO_SECRET }}
+        run: cd demostore_automation && python -m pytest tests/frontend/ -v -m "fesmoke" --html=reports/report.html --self-contained-html
+        continue-on-error: true
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: demostore_automation/reports/report.html
+          retention-days: 7
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: demostore_automation/reports/
+          retention-days: 7
