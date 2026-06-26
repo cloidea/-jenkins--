@@ -106,7 +106,7 @@ class SeleniumExtended:
         try:
             WebDriverWait(self.driver, timeout).until(
                 EC.element_to_be_clickable(locator),
-                message=f'Element with locator {locator} not found after {timeout} seconds."
+                message=f'Element with locator {locator} not found after {timeout} seconds.'
             ).click()
         except StaleElementReferenceException:
             time.sleep(2)

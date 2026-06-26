@@ -41,7 +41,7 @@ def test_create_1_simple_product():
     assert create_response['name'] == product_name, f"Create product api, the 'name' in response is not as expected" \
                 f"Expected: {product_name}, Actual: {create_response['name']}"
     
-    assert create_response['status'] == 'publish' f"Create product api, the 'status' in response is not as expected" \
+    assert create_response['status'] == 'publish', f"Create product api, the 'status' in response is not as expected. " \
                 f"Expected: 'publish', Actual: {create_response['status']}"
 
     #verify the in database that the product is created 

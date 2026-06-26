@@ -9,6 +9,7 @@ Example:
 import random
 import string
 import logging as logger
+from html.parser import HTMLParser
 
 
 
@@ -43,7 +44,7 @@ def generate_random_coupon_code(suffix=None, length=10):
 
 def generate_random_string(length=10, prefix=None, suffix=None):
 
-    random_string = ''.join(random.choice(string.ascii_lowercase, k=length))
+    random_string = ''.join(random.choices(string.ascii_lowercase, k=length))
 
     if prefix:
         random_string = prefix + random_string
@@ -51,6 +52,25 @@ def generate_random_string(length=10, prefix=None, suffix=None):
         random_string = random_string + suffix    
 
     return random_string
+
+def convert_html_to_text(html_string):
+    """Convert HTML string to plain text by stripping all tags.
+
+    Args:
+        html_string (str): The HTML content to convert.
+
+    Returns:
+        str: Plain text extracted from the HTML.
+    """
+    class HTMLStripper(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.text = ""
+        def handle_data(self, data):
+            self.text += data
+    stripper = HTMLStripper()
+    stripper.feed(html_string)
+    return stripper.text.strip()
 
 if __name__ == '__main__':
     print(generate_random_email_and_password())

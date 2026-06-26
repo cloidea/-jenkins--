@@ -39,11 +39,13 @@ class CartPage(CartPageLocators):
         self.sl.wait_and_click(self.ADD_COUPON_HIDE_SHOW)
 
     def get_displayed_message(self):
-        #retrieves the success message displayed after applying the coupon
-        #returns: str: the text of the success message.
+        """Retrieves the success message displayed after applying the coupon.
 
-    txt = self.sl.wait_and_get_text(self.CART_PAGE_SUCCESS_MESSAGE)
-    return txt #do I need this because it caused the code below it to be unreachable?
+        Returns:
+            str: the text of the success message.
+        """
+        txt = self.sl.wait_and_get_text(self.CART_PAGE_SUCCESS_MESSAGE)
+        return txt
 
 
     def apply_coupon(self, coupon_code, expect_success=True):

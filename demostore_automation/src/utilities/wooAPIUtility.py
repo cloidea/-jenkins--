@@ -42,21 +42,21 @@ class WooAPIUtility:
         logger.debug(f"POST API response: {self.rs_json}")
         return self.rs_json
 
-def get(self, woo_endpoint, params=None, return_headers=False, expected_status_code=200):
-    
-    rs_api = self.wcapi.get(woo_endpoint, params=params)
-    self.status_code = rs_api.status_code
-    self.expected_status_code = expected_status_code
-    self.rs_json = rs_api.json()
-    self.endpoint = woo_endpoint
-    self.url = rs_api.url
-    self.assert_status_code()
+    def get(self, woo_endpoint, params=None, return_headers=False, expected_status_code=200):
 
-    logger.debug(f"GET API response: {self.rs_json}")
-    if return_headers:
-        return {'response_json': self.rs_json, 'headers': rs_api.headers}
-    else:
-        return self.rs_json
+        rs_api = self.wcapi.get(woo_endpoint, params=params)
+        self.status_code = rs_api.status_code
+        self.expected_status_code = expected_status_code
+        self.rs_json = rs_api.json()
+        self.endpoint = woo_endpoint
+        self.url = rs_api.url
+        self.assert_status_code()
+
+        logger.debug(f"GET API response: {self.rs_json}")
+        if return_headers:
+            return {'response_json': self.rs_json, 'headers': rs_api.headers}
+        else:
+            return self.rs_json
 
     def put(self, wc_endpoint, params=None, expected_status_code=200):
 

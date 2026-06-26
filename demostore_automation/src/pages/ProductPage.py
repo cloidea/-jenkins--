@@ -58,11 +58,18 @@ class ProductPage(ProductPageLocators):
 
 
     def get_url_of_displayed_alternate_images(self):
-        image_elements = self.sl.wait_and_get_elements(self.PRODUCT_ALTERNATE_IMAGES, locator, timeout=None, err="Unable to find alternate images for a product.")
+        image_elements = self.sl.wait_and_get_elements(self.PRODUCT_ALTERNATE_IMAGES, err="Unable to find alternate images for a product.")
         all_urls = [element.get_attribute('src') for element in image_elements]
+        logger.debug(f"All alternate image urls: {all_urls}")
+        return all_urls
 
-        
-        logger.debug(f"All alternate image urls: {alternate_urls}")
+    def get_product_type_text(self):
+        """Retrieves the product type text displayed on the product page."""
+        return self.sl.wait_and_get_text(self.PRODUCT_TYPE_TEXT)
+
+    def get_displayed_product_price(self):
+        """Retrieves the displayed product price HTML."""
+        return self.sl.wait_and_get_text(self.PRODUCT_PRICE)
 
 
 

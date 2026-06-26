@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8"/>
     <title id="head-title">report.html</title>
-      <link href="assets/style.css" rel="stylesheet" type="text/css"/>
+      <link href="assets\style.css" rel="stylesheet" type="text/css"/>
   </head>
   <body>
     <h1 id="title">report.html</h1>
-    <p>Report generated on 05-Jul-2025 at 18:16:21 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a>
+    <p>Report generated on 08-Jun-2026 at 13:23:00 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a>
         v4.1.1</p>
     <div id="environment-header">
       <h2>Environment</h2>
@@ -61,7 +61,7 @@
         <h2>Summary</h2>
         <div class="additional-summary prefix">
         </div>
-        <p class="run-count">0 test took 0 ms.</p>
+        <p class="run-count">3 tests took 00:00:25.</p>
         <p class="filter">(Un)check the boxes to filter the results.</p>
         <div class="summary__reload">
           <div class="summary__reload__button hidden" onclick="location.reload()">
@@ -71,18 +71,18 @@
         <div class="summary__spacer"></div>
         <div class="controls">
           <div class="filters">
-            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="failed" disabled/>
-            <span class="failed">0 Failed,</span>
-            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="passed" disabled/>
-            <span class="passed">0 Passed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="failed" />
+            <span class="failed">2 Failed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="passed" />
+            <span class="passed">1 Passed,</span>
             <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="skipped" disabled/>
             <span class="skipped">0 Skipped,</span>
             <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xfailed" disabled/>
             <span class="xfailed">0 Expected failures,</span>
             <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xpassed" disabled/>
             <span class="xpassed">0 Unexpected passes,</span>
-            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="error" />
-            <span class="error">1 Errors,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="error" disabled/>
+            <span class="error">0 Errors,</span>
             <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="rerun" disabled/>
             <span class="rerun">0 Reruns</span>
           </div>
@@ -108,7 +108,7 @@
     </table>
   </body>
   <footer>
-    <div id="data-container" data-jsonblob="{&#34;environment&#34;: {&#34;Python&#34;: &#34;3.13.3&#34;, &#34;Platform&#34;: &#34;macOS-15.3-arm64-arm-64bit-Mach-O&#34;, &#34;Packages&#34;: {&#34;pytest&#34;: &#34;8.3.4&#34;, &#34;pluggy&#34;: &#34;1.6.0&#34;}, &#34;Plugins&#34;: {&#34;html&#34;: &#34;4.1.1&#34;, &#34;metadata&#34;: &#34;3.1.1&#34;}}, &#34;tests&#34;: {&#34;tests/frontend/end_to_end/test_end_to_end_checkout_guest_user.py&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/frontend/end_to_end/test_end_to_end_checkout_guest_user.py::collect&#34;, &#34;duration&#34;: &#34;0 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/frontend/end_to_end/test_end_to_end_checkout_guest_user.py::collect&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;0 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;../.venv/lib/python3.13/site-packages/_pytest/python.py:493: in importtestmodule\n    mod = import_path(\n../.venv/lib/python3.13/site-packages/_pytest/pathlib.py:587: in import_path\n    importlib.import_module(module_name)\n/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n&amp;lt;frozen importlib._bootstrap&amp;gt;:1387: in _gcd_import\n    ???\n&amp;lt;frozen importlib._bootstrap&amp;gt;:1360: in _find_and_load\n    ???\n&amp;lt;frozen importlib._bootstrap&amp;gt;:1331: in _find_and_load_unlocked\n    ???\n&amp;lt;frozen importlib._bootstrap&amp;gt;:935: in _load_unlocked\n    ???\n../.venv/lib/python3.13/site-packages/_pytest/assertion/rewrite.py:175: in exec_module\n    source_stat, co = _rewrite_test(fn, self.config)\n../.venv/lib/python3.13/site-packages/_pytest/assertion/rewrite.py:355: in _rewrite_test\n    tree = ast.parse(source, filename=strfn)\n/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ast.py:54: in parse\n    return compile(source, filename, mode, flags,\nE     File &amp;quot;/Users/jackie/QA_Automation_Learning/Pytest-framework-ecom-2025-jh/demostore_automation/tests/frontend/end_to_end/test_end_to_end_checkout_guest_user.py&amp;quot;, line 52\nE       coupon_code = MainConfigs.get_coupon_code(&amp;#x27;FREE_COUPON&amp;#x27;)\nE   IndentationError: unexpected indent\n&#34;}]}, &#34;renderCollapsed&#34;: [&#34;passed&#34;], &#34;initialSort&#34;: &#34;result&#34;, &#34;title&#34;: &#34;report.html&#34;}"></div>
+    <div id="data-container" data-jsonblob="{&#34;environment&#34;: {&#34;Python&#34;: &#34;3.11.9&#34;, &#34;Platform&#34;: &#34;Windows-10-10.0.26200-SP0&#34;, &#34;Packages&#34;: {&#34;pytest&#34;: &#34;8.3.4&#34;, &#34;pluggy&#34;: &#34;1.6.0&#34;}, &#34;Plugins&#34;: {&#34;html&#34;: &#34;4.1.1&#34;, &#34;metadata&#34;: &#34;3.1.1&#34;}, &#34;JAVA_HOME&#34;: &#34;C:/Program Files/Eclipse Adoptium/jdk-17.0.19.10-hotspot&#34;}, &#34;tests&#34;: {&#34;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_number_of_products_displayed&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_number_of_products_displayed&#34;, &#34;duration&#34;: &#34;00:00:18&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_number_of_products_displayed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:18&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;E   selenium.common.exceptions.TimeoutException: Message:\n\nDuring handling of the above exception, another exception occurred:\nE   selenium.common.exceptions.TimeoutException: Message: Can not get product elements from home page.\n&#34;}], &#34;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_heading_is_displayed&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_heading_is_displayed&#34;, &#34;duration&#34;: &#34;00:00:05&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_heading_is_displayed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:05&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;E   selenium.common.exceptions.TimeoutException: Message: Element with locator (&amp;#x27;css selector&amp;#x27;, &amp;#x27;header.woocommerce-products-header h1.page-title&amp;#x27;) not found after timeout of 5\n    Stacktrace:\n    \tchromedriver!GetHandleVerifier [0x7ff743827de5+14895]\n    \tchromedriver!GetHandleVerifier [0x7ff743827e50+14900]\n    \tchromedriver!(No symbol) [0x7ff74358d5ad]\n    \tchromedriver!(No symbol) [0x7ff7435e7822]\n    \tchromedriver!(No symbol) [0x7ff7435e7b2c]\n    \tchromedriver!(No symbol) [0x7ff743637d17]\n    \tchromedriver!(No symbol) [0x7ff74363486f]\n    \tchromedriver!(No symbol) [0x7ff7435d9df8]\n    \tchromedriver!(No symbol) [0x7ff7435dace3]\n    \tchromedriver!GetHandleVerifier [0x7ff743b3cc49+3296f9]\n    \tchromedriver!GetHandleVerifier [0x7ff743b37375+323e25]\n    \tchromedriver!GetHandleVerifier [0x7ff743b5bc82+348732]\n    \tchromedriver!GetHandleVerifier [0x7ff743846045+32af5]\n    \tchromedriver!GetHandleVerifier [0x7ff74384ecec+3b79c]\n    \tchromedriver!GetHandleVerifier [0x7ff743831bc4+1e674]\n    \tchromedriver!GetHandleVerifier [0x7ff743831d54+1e804]\n    \tchromedriver!GetHandleVerifier [0x7ff7438160e7+2b97]\n    \tKERNEL32!BaseThreadInitThunk [0x7ff96a5ce957+17]\n    \tntdll!RtlUserThreadStart [0x7ff96c58427c+2c]\n&#34;}], &#34;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_header_menu_is_displayed&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_header_menu_is_displayed&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/frontend/home_page/test_home_page_smoke.py::TestHomePageSmoke::test_verify_header_menu_is_displayed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}]}, &#34;renderCollapsed&#34;: [&#34;passed&#34;], &#34;initialSort&#34;: &#34;result&#34;, &#34;title&#34;: &#34;report.html&#34;}"></div>
     <script>
       (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 const { getCollapsedCategory, setCollapsedIds } = require('./storage.js')

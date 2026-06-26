@@ -45,4 +45,16 @@ class DBUtility(object):
 
 
     def execute_sql(self, sql):
-        pass
+        """Execute DML statements (INSERT/UPDATE/DELETE) with commit."""
+        conn = self.create_connection()
+        try:
+            logger.debug(f"Executing DML: {sql}")
+            cur = conn.cursor()
+            cur.execute(sql)
+            conn.commit()
+            cur.close()
+        except Exception as e:
+            conn.rollback()
+            raise Exception(f"Failed running sql: {sql} \n  Error: {str(e)}")
+        finally:
+            conn.close()
