@@ -35,8 +35,8 @@ pipeline {
         stage('Setup Test Infrastructure') {
             steps {
                 script {
-                    // 先停掉可能残留的旧容器，避免名称冲突
-                    sh 'docker compose down --remove-orphans 2>/dev/null || true'
+                    // 强制删除同名旧容器（不管来自哪个 compose 项目）
+                    sh 'docker rm -f wc_db wc_site 2>/dev/null || true'
                     sh 'docker compose up -d'
 
                     sh '''
