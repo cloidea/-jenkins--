@@ -134,16 +134,14 @@ pipeline {
         always {
             // 清理测试基础设施
             sh 'docker compose down || true'
+            // 归档报告和截图
+            archiveArtifacts artifacts: 'demostore_automation/reports/**', allowEmptyArchive: true
         }
         success {
             echo '🎉 所有测试通过！'
         }
         failure {
             echo '⚠️  测试未通过，请检查报告。'
-        }
-        // 归档报告和截图
-        always {
-            archiveArtifacts artifacts: 'demostore_automation/reports/**', allowEmptyArchive: true
         }
     }
 }
