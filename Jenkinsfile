@@ -5,11 +5,11 @@ pipeline {
     // 环境变量
     // =============================================
     environment {
-        // 所有容器通过 jenkins-net 网络用容器名互访，避免 localhost/host.docker.internal 歧义
-        BASE_URL       = 'http://wc_site'
+        // Python 测试容器通过 host.docker.internal 访问宿主机端口映射的服务
+        BASE_URL       = 'http://host.docker.internal:8080'
         BROWSER        = 'headlesschrome'
-        DB_HOST        = 'wc_db'
-        DB_PORT        = '3306'
+        DB_HOST        = 'host.docker.internal'
+        DB_PORT        = '3307'
         DB_DATABASE    = 'wordpress'
         DB_TABLE_PREFIX = 'wp_'
         DB_USER        = 'root'
@@ -45,26 +45,54 @@ pipeline {
                     }
                     // 强制删除同名旧容器（不管来自哪个 compose 项目）
                     sh 'docker rm -f wc_db wc_site 2>/dev/null || true'
-                    // 加载 CI 覆盖文件，让 WP/MySQL 接入 jenkins-net，与测试容器同网络
-                    sh 'docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d'
+                    // 仅用基础 compose 文件，WP/MySQL 通过宿主机端口映射暴露
+                    sh 'docker compose up -d'
 
                     sh '''
-                        echo "等待 WordPress 启动..."
+                        echo "============================================="
+                        echo "阶段 1: 等待 WordPress 容器启动..."
+                        echo "============================================="
                         max_times=36
-                        final_status=""
+                        wp_responding=""
                         for i in $(seq 1 $max_times); do
-                            final_status=$(curl -s -o /dev/null -w "%{http_code}" http://wc_site 2>/dev/null || echo "000")
-                            if [ "$final_status" = "200" ] || [ "$final_status" = "302" ]; then
-                                echo "WordPress 已就绪 (HTTP $final_status)"
+                            wp_responding=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080 2>/dev/null || echo "000")
+                            if [ "$wp_responding" = "200" ] || [ "$wp_responding" = "302" ] || [ "$wp_responding" = "301" ]; then
+                                echo "WordPress 容器已响应 (HTTP $wp_responding) — 第 ${i} 次检查"
                                 break
                             fi
-                            echo "   等待中... ($i/$max_times)"
+                            echo "   等待容器启动... ($i/$max_times)"
                             sleep 5
                         done
-                        # 超时直接终止，避免带着无效环境跑测试
-                        if [ "$final_status" != "200" ] && [ "$final_status" != "302" ]; then
-                            echo "等待 3 分钟后 WordPress 仍无法访问，构建终止"
+                        if [ "$wp_responding" != "200" ] && [ "$wp_responding" != "302" ] && [ "$wp_responding" != "301" ]; then
+                            echo "ERROR: 等待 3 分钟后 WordPress 容器仍无响应，构建终止"
                             exit 1
+                        fi
+
+                        echo ""
+                        echo "============================================="
+                        echo "阶段 2: 检查 WordPress 是否已安装..."
+                        echo "============================================="
+                        # 访问 /wp-json/ 判断站点是否已完成安装
+                        # 302 → 跳转到安装页（假就绪）；200 + JSON → API 可用（真就绪）
+                        install_check=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080/wp-json/ 2>/dev/null || echo "000")
+                        if [ "$install_check" = "200" ]; then
+                            echo "WordPress 已安装，REST API 可用"
+                        else
+                            echo "WordPress 未安装 (HTTP $install_check)，执行自动安装..."
+                            docker exec wc_site wp core install \\
+                                --url="http://host.docker.internal:8080" \\
+                                --title="Test Store" \\
+                                --admin_user="admin" \\
+                                --admin_password="admin_password" \\
+                                --admin_email="admin@test.com" \\
+                                --path="/var/www/html" \\
+                                --skip-email
+                            if [ $? -eq 0 ]; then
+                                echo "WordPress 安装成功"
+                            else
+                                echo "ERROR: WordPress 安装失败，构建终止"
+                                exit 1
+                            fi
                         fi
                     '''
                 }
@@ -79,7 +107,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root --network jenkins-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {
@@ -102,7 +130,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root --network jenkins-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {

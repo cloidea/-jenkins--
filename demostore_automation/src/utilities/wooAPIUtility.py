@@ -17,7 +17,8 @@ class WooAPIUtility:
             url=self.base_url,
             consumer_key=wc_creds['woo_key'],
             consumer_secret=wc_creds['woo_secret'],
-            version="wc/v3"
+            version="wc/v3",
+            timeout=15
         )
 
     def assert_status_code(self):

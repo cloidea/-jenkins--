@@ -22,6 +22,8 @@ services:
     container_name: wc_site
     ports:
       - "8080:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: wordpress
@@ -29,8 +31,8 @@ services:
       WORDPRESS_DB_NAME: wordpress
       WORDPRESS_TABLE_PREFIX: wp_
       WORDPRESS_CONFIG_EXTRA: |
-        define('WP_HOME', 'http://wc_site');
-        define('WP_SITEURL', 'http://wc_site');
+        define('WP_HOME', 'http://host.docker.internal:8080');
+        define('WP_SITEURL', 'http://host.docker.internal:8080');
     volumes:
       - wp_data:/var/www/html
     depends_on:
