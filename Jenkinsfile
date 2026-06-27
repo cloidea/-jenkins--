@@ -103,27 +103,32 @@ pipeline {
                         fi
                     '''
 
-                    // ---- WooCommerce 激活（强制执行，无论 WP 是否重装） ----
+                    // ---- WooCommerce 离线安装（在线仓库国内不通） ----
                     sh '''
                         echo "=== 检查 WooCommerce ==="
-                        if docker exec wc_site wp plugin is-installed woocommerce --allow-root --path=/var/www/html 2>/dev/null; then
-                            echo "WooCommerce 已安装，激活中..."
-                            docker exec wc_site wp plugin activate woocommerce --allow-root --path=/var/www/html
+                        if docker exec wc_site wp plugin is-active woocommerce --allow-root --path=/var/www/html 2>/dev/null; then
+                            echo "WooCommerce 已激活，跳过"
                         else
-                            echo "安装并激活 WooCommerce..."
-                            docker exec wc_site wp plugin install woocommerce --activate --allow-root --path=/var/www/html
-                        fi
-                        if [ $? -ne 0 ]; then
-                            echo "ERROR: WooCommerce 操作失败"; exit 1
-                        fi
-                        # 刷新重写规则 + 等待路由加载
-                        docker exec wc_site wp rewrite flush --allow-root --path=/var/www/html
-                        sleep 3
-                        # 校验激活状态
-                        if docker exec wc_site wp plugin is-active woocommerce --allow-root --path=/var/www/html; then
-                            echo "WooCommerce 激活确认 OK"
-                        else
-                            echo "ERROR: WooCommerce 未成功激活"; exit 1
+                            # 安装方式：优先用项目内预置 zip，次选在线下载
+                            WOO_ZIP="woocommerce.zip"
+                            if [ -f "$WOO_ZIP" ]; then
+                                echo "使用本地 $WOO_ZIP 安装..."
+                                docker cp "$WOO_ZIP" wc_site:/tmp/woocommerce.zip
+                                docker exec wc_site wp plugin install /tmp/woocommerce.zip --activate --allow-root --path=/var/www/html
+                            else
+                                echo "本地无 $WOO_ZIP，尝试在线安装..."
+                                docker exec wc_site wp plugin install woocommerce --activate --allow-root --path=/var/www/html
+                            fi
+                            if [ $? -ne 0 ]; then
+                                echo "ERROR: WooCommerce 安装失败"; exit 1
+                            fi
+                            docker exec wc_site wp rewrite flush --allow-root --path=/var/www/html
+                            sleep 3
+                            if docker exec wc_site wp plugin is-active woocommerce --allow-root --path=/var/www/html; then
+                                echo "WooCommerce 激活确认 OK"
+                            else
+                                echo "ERROR: WooCommerce 未成功激活"; exit 1
+                            fi
                         fi
                     '''
 
