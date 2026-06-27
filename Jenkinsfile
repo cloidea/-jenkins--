@@ -84,7 +84,8 @@ pipeline {
                                 --admin_password="admin_password" \\
                                 --admin_email="admin@test.com" \\
                                 --path="/var/www/html" \\
-                                --skip-email
+                                --skip-email \\
+                                --allow-root
 
                             if [ $? -ne 0 ]; then
                                 echo "ERROR: WordPress 安装失败"
