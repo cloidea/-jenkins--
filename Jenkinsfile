@@ -5,10 +5,11 @@ pipeline {
     // 环境变量
     // =============================================
     environment {
-        BASE_URL       = 'http://host.docker.internal:8080'
+        // 所有容器通过 jenkins-net 网络用容器名互访，避免 localhost/host.docker.internal 歧义
+        BASE_URL       = 'http://wc_site'
         BROWSER        = 'headlesschrome'
-        DB_HOST        = 'host.docker.internal'
-        DB_PORT        = '3307'
+        DB_HOST        = 'wc_db'
+        DB_PORT        = '3306'
         DB_DATABASE    = 'wordpress'
         DB_TABLE_PREFIX = 'wp_'
         DB_USER        = 'root'
@@ -49,7 +50,7 @@ pipeline {
                     sh '''
                         echo "等待 WordPress 启动..."
                         for i in $(seq 1 36); do
-                            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080 2>/dev/null || echo "000")
+                            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://wc_site 2>/dev/null || echo "000")
                             if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ]; then
                                 echo "WordPress 已就绪 (HTTP $STATUS)"
                                 break
@@ -70,7 +71,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root --network jenkins-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {
@@ -93,7 +94,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root --network jenkins-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {

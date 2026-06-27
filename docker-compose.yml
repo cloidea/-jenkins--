@@ -29,8 +29,8 @@ services:
       WORDPRESS_DB_NAME: wordpress
       WORDPRESS_TABLE_PREFIX: wp_
       WORDPRESS_CONFIG_EXTRA: |
-        define('WP_HOME', 'http://localhost:8080');
-        define('WP_SITEURL', 'http://localhost:8080');
+        define('WP_HOME', 'http://wc_site');
+        define('WP_SITEURL', 'http://wc_site');
     volumes:
       - wp_data:/var/www/html
     depends_on:
