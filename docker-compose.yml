@@ -20,7 +20,7 @@ services:
       retries: 10
 
   wordpress:
-    image: wordpress:latest
+    image: wordpress:6.9-apache
     container_name: wc_site
     ports:
       - "8080:80"
