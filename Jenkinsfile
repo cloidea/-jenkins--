@@ -5,11 +5,11 @@ pipeline {
     // 环境变量
     // =============================================
     environment {
-        // Python 测试容器通过 host.docker.internal 访问宿主机端口映射的服务
-        BASE_URL       = 'http://host.docker.internal:8080'
+        // 所有容器同处 ecom-testing-net 网络，用服务名互访，无端口歧义
+        BASE_URL       = 'http://wc_site'
         BROWSER        = 'headlesschrome'
-        DB_HOST        = 'host.docker.internal'
-        DB_PORT        = '3307'
+        DB_HOST        = 'wc_db'
+        DB_PORT        = '3306'
         DB_DATABASE    = 'wordpress'
         DB_TABLE_PREFIX = 'wp_'
         DB_USER        = 'root'
@@ -43,9 +43,8 @@ pipeline {
                                                       passwordVariable: 'DH_PASS')]) {
                         sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
                     }
-                    // 强制删除同名旧容器（不管来自哪个 compose 项目）
+                    // 强制删除同名旧容器
                     sh 'docker rm -f wc_db wc_site 2>/dev/null || true'
-                    // 仅用基础 compose 文件，WP/MySQL 通过宿主机端口映射暴露
                     sh 'docker compose up -d'
 
                     sh '''
@@ -55,7 +54,7 @@ pipeline {
                         max_times=36
                         wp_responding=""
                         for i in $(seq 1 $max_times); do
-                            wp_responding=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080 2>/dev/null || echo "000")
+                            wp_responding=$(curl -s -o /dev/null -w "%{http_code}" http://wc_site 2>/dev/null || echo "000")
                             if [ "$wp_responding" = "200" ] || [ "$wp_responding" = "302" ] || [ "$wp_responding" = "301" ]; then
                                 echo "WordPress 容器已响应 (HTTP $wp_responding) — 第 ${i} 次检查"
                                 break
@@ -72,15 +71,20 @@ pipeline {
                         echo "============================================="
                         echo "阶段 2: 检查 WordPress 是否已安装..."
                         echo "============================================="
-                        # 访问 /wp-json/ 判断站点是否已完成安装
-                        # 302 → 跳转到安装页（假就绪）；200 + JSON → API 可用（真就绪）
-                        install_check=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080/wp-json/ 2>/dev/null || echo "000")
+                        # /wp-json/ 返回 200 → REST API 就绪（真就绪）
+                        # /wp-json/ 返回 404/302 → 站点未安装（假就绪，仅容器在跑）
+                        install_check=$(curl -s -o /dev/null -w "%{http_code}" http://wc_site/wp-json/ 2>/dev/null || echo "000")
                         if [ "$install_check" = "200" ]; then
                             echo "WordPress 已安装，REST API 可用"
                         else
                             echo "WordPress 未安装 (HTTP $install_check)，执行自动安装..."
-                            docker exec wc_site wp core install \\
-                                --url="http://host.docker.internal:8080" \\
+                            # wp-cli 不在 WordPress 镜像内，用独立 wordpress:cli 容器执行
+                            # --volumes-from wc_site 复用 WordPress 文件，同网络直连数据库
+                            docker run --rm \\
+                                --network ecom-testing-net \\
+                                --volumes-from wc_site \\
+                                wordpress:cli wp core install \\
+                                --url="http://wc_site" \\
                                 --title="Test Store" \\
                                 --admin_user="admin" \\
                                 --admin_password="admin_password" \\
@@ -93,6 +97,18 @@ pipeline {
                                 echo "ERROR: WordPress 安装失败，构建终止"
                                 exit 1
                             fi
+                        fi
+
+                        echo ""
+                        echo "============================================="
+                        echo "阶段 3: 确认 REST API 可用..."
+                        echo "============================================="
+                        api_verify=$(curl -s -o /dev/null -w "%{http_code}" http://wc_site/wp-json/ 2>/dev/null || echo "000")
+                        if [ "$api_verify" = "200" ]; then
+                            echo "REST API 就绪 (HTTP 200)，开始执行测试"
+                        else
+                            echo "ERROR: REST API 不可用 (HTTP $api_verify)，构建终止"
+                            exit 1
                         fi
                     '''
                 }
@@ -107,7 +123,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root --network ecom-testing-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {
@@ -130,7 +146,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root --network ecom-testing-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {
