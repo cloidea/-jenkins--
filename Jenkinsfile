@@ -1,11 +1,14 @@
 pipeline {
     agent any
 
+    // =============================================
+    // 环境变量 — 测试容器走 Docker 内网服务名
+    // =============================================
     environment {
-        BASE_URL       = 'http://host.docker.internal:8080'
+        BASE_URL       = 'http://wc_site'
         BROWSER        = 'headlesschrome'
-        DB_HOST        = 'host.docker.internal'
-        DB_PORT        = '3307'
+        DB_HOST        = 'wc_db'
+        DB_PORT        = '3306'
         DB_DATABASE    = 'wordpress'
         DB_TABLE_PREFIX = 'wp_'
         DB_USER        = 'root'
@@ -18,11 +21,12 @@ pipeline {
     stages {
 
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
+        // ============================================
+        // Stage 2: 基础设施 + WordPress 安装 + WooCommerce 激活
+        // ============================================
         stage('Setup Test Infrastructure') {
             steps {
                 script {
@@ -33,102 +37,105 @@ pipeline {
                         sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
                     }
 
-                    // 清理旧容器，启动新容器
+                    // 启动 MySQL + WordPress
                     sh 'docker rm -f wc_db wc_site 2>/dev/null || true'
                     sh 'docker compose up -d'
 
-                    // MySQL 权限修复：允许 root 从任意主机（含 host.docker.internal）密码登录
+                    // ---- MySQL 权限：root@% 和 root@localhost 双通道授权 ----
                     sh '''
                         echo "=== 等待 MySQL 就绪 ==="
                         until docker exec wc_db mysqladmin ping -h localhost --silent 2>/dev/null; do
                             sleep 2
                         done
                         docker exec wc_db mysql -u root -proot_password -e "
-                            ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root_password';
-                            GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+                            ALTER USER 'root'@'%'       IDENTIFIED WITH mysql_native_password BY 'root_password';
+                            ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root_password';
+                            GRANT ALL PRIVILEGES ON *.* TO 'root'@'%'       WITH GRANT OPTION;
+                            GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
                             FLUSH PRIVILEGES;
-                        " 2>/dev/null
-                        echo "MySQL 权限已配置"
+                        "
+                        echo "MySQL root 权限已配置 (% + localhost)"
                     '''
 
-                    // ========================================
-                    // 阶段 1: 等待容器响应
-                    // ========================================
+                    // ---- 等待 WordPress 容器响应 ----
                     sh '''
-                        echo "=== 阶段 1: 等待 WordPress 容器响应 ==="
-                        max=36
-                        status=""
+                        echo "=== 等待 WordPress 容器响应 ==="
+                        max=36; s=""
                         for i in $(seq 1 $max); do
-                            status=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080 2>/dev/null || echo "000")
-                            if [ "$status" = "200" ] || [ "$status" = "302" ] || [ "$status" = "301" ]; then
-                                echo "容器已响应 (HTTP $status) — 第 $i 次"
-                                break
-                            fi
-                            echo "  等待... ($i/$max)"
-                            sleep 5
+                            s=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080 2>/dev/null || echo "000")
+                            case "$s" in 200|302|301) echo "容器已响应 (HTTP $s)"; break ;; esac
+                            echo "  等待... ($i/$max)"; sleep 5
                         done
-                        if [ "$status" != "200" ] && [ "$status" != "302" ] && [ "$status" != "301" ]; then
-                            echo "ERROR: 3 分钟无响应，终止"
-                            exit 1
-                        fi
+                        case "$s" in 200|302|301) ;; *) echo "ERROR: 3分钟无响应"; exit 1 ;; esac
                     '''
 
-                    // ========================================
-                    // 阶段 2: 检查是否已安装，未安装则自动安装
-                    // ========================================
+                    // ---- 安装 wp-cli（始终安装，后续步骤依赖） ----
                     sh '''
-                        echo "=== 阶段 2: 检查 WordPress 安装状态 ==="
-                        check=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8080/wp-json/ 2>/dev/null || echo "000")
-                        if [ "$check" = "200" ]; then
-                            echo "WordPress 已安装，跳过安装步骤"
+                        echo "=== 安装 wp-cli ==="
+                        if [ ! -f wp-cli.phar ]; then
+                            curl -sSfLo wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+                        fi
+                        docker cp wp-cli.phar wc_site:/usr/local/bin/wp
+                        docker exec wc_site chmod +x /usr/local/bin/wp
+                        echo "wp-cli 就绪"
+                    '''
+
+                    // ---- WordPress core install（如未安装） ----
+                    sh '''
+                        echo "=== 检查 WordPress 安装 ==="
+                        if docker exec wc_site wp core is-installed --allow-root --path=/var/www/html 2>/dev/null; then
+                            echo "WordPress 已安装"
                         else
-                            echo "未安装 (HTTP $check)，开始安装..."
-
-                            # 下载 wp-cli.phar 到宿主机，再 cp 进容器
-                            if [ ! -f wp-cli.phar ]; then
-                                curl -sO https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-                            fi
-                            docker cp wp-cli.phar wc_site:/usr/local/bin/wp
-                            docker exec wc_site chmod +x /usr/local/bin/wp
-
-                            docker exec wc_site wp core install \\
-                                --url="http://host.docker.internal:8080" \\
-                                --title="Test Store" \\
-                                --admin_user="admin" \\
-                                --admin_password="admin_password" \\
-                                --admin_email="admin@test.com" \\
-                                --path="/var/www/html" \\
-                                --skip-email \\
+                            echo "执行 WordPress 安装..."
+                            docker exec wc_site wp core install \
+                                --url="http://wc_site" \
+                                --title="Test Store" \
+                                --admin_user="admin" \
+                                --admin_password="admin_password" \
+                                --admin_email="admin@test.com" \
+                                --path="/var/www/html" \
+                                --skip-email \
                                 --allow-root
-
                             if [ $? -ne 0 ]; then
-                                echo "ERROR: WordPress 安装失败"
-                                exit 1
+                                echo "ERROR: WordPress 安装失败"; exit 1
                             fi
                             echo "WordPress 安装完成"
-
-                            # 安装并激活 WooCommerce 插件（API 路由 wc/v3 依赖此插件）
-                            echo "安装 WooCommerce 插件..."
-                            docker exec wc_site wp plugin install woocommerce --activate --allow-root --path="/var/www/html"
-                            if [ $? -ne 0 ]; then
-                                echo "ERROR: WooCommerce 安装失败"
-                                exit 1
-                            fi
-                            echo "WooCommerce 安装并激活完成"
                         fi
                     '''
 
-                    // ========================================
-                    // 阶段 3: 确认 REST API 可用
-                    // ========================================
+                    // ---- WooCommerce 激活（强制执行，无论 WP 是否重装） ----
                     sh '''
-                        echo "=== 阶段 3: 确认 REST API ==="
-                        verify=$(curl -s http://host.docker.internal:8080/wp-json/ 2>/dev/null | head -c 100)
-                        if echo "$verify" | grep -q '"name"'; then
-                            echo "REST API 就绪，开始测试"
+                        echo "=== 检查 WooCommerce ==="
+                        if docker exec wc_site wp plugin is-installed woocommerce --allow-root --path=/var/www/html 2>/dev/null; then
+                            echo "WooCommerce 已安装，激活中..."
+                            docker exec wc_site wp plugin activate woocommerce --allow-root --path=/var/www/html
                         else
-                            echo "ERROR: REST API 不可用"
-                            echo "响应: $verify"
+                            echo "安装并激活 WooCommerce..."
+                            docker exec wc_site wp plugin install woocommerce --activate --allow-root --path=/var/www/html
+                        fi
+                        if [ $? -ne 0 ]; then
+                            echo "ERROR: WooCommerce 操作失败"; exit 1
+                        fi
+                        # 刷新重写规则 + 等待路由加载
+                        docker exec wc_site wp rewrite flush --allow-root --path=/var/www/html
+                        sleep 3
+                        # 校验激活状态
+                        if docker exec wc_site wp plugin is-active woocommerce --allow-root --path=/var/www/html; then
+                            echo "WooCommerce 激活确认 OK"
+                        else
+                            echo "ERROR: WooCommerce 未成功激活"; exit 1
+                        fi
+                    '''
+
+                    // ---- 最终校验 REST API ----
+                    sh '''
+                        echo "=== 校验 REST API ==="
+                        resp=$(curl -s http://host.docker.internal:8080/wp-json/wc/v3/ 2>/dev/null | head -c 200)
+                        if echo "$resp" | grep -q '"namespace":"wc/v3"'; then
+                            echo "WC API v3 路由已生效，开始测试"
+                        else
+                            echo "ERROR: WC API 不可用"
+                            echo "响应: $resp"
                             exit 1
                         fi
                     '''
@@ -144,7 +151,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root --add-host=host.docker.internal:host-gateway -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root --network ecom-testing-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {
@@ -167,7 +174,7 @@ pipeline {
                 docker {
                     image 'python:3.11'
                     reuseNode true
-                    args "-u root --add-host=host.docker.internal:host-gateway -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
+                    args "-u root --network ecom-testing-net -e BASE_URL=${BASE_URL} -e BROWSER=${BROWSER} -e DB_HOST=${DB_HOST} -e DB_PORT=${DB_PORT} -e DB_DATABASE=${DB_DATABASE} -e DB_TABLE_PREFIX=${DB_TABLE_PREFIX} -e DB_USER=${DB_USER} -e DB_PASSWORD=${DB_PASSWORD} -e WOO_KEY=${WOO_KEY} -e WOO_SECRET=${WOO_SECRET}"
                 }
             }
             steps {
@@ -196,11 +203,7 @@ pipeline {
             sh 'chmod -R 755 demostore_automation/reports/ || true'
             archiveArtifacts artifacts: 'demostore_automation/reports/**', allowEmptyArchive: true
         }
-        success {
-            echo '所有测试通过！'
-        }
-        failure {
-            echo '测试未通过，请检查报告。'
-        }
+        success { echo '所有测试通过！' }
+        failure { echo '测试未通过，请检查报告。' }
     }
 }
