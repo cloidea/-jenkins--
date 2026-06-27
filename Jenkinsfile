@@ -13,6 +13,7 @@ pipeline {
         DB_TABLE_PREFIX = 'wp_'
         DB_USER        = 'root'
         DB_PASSWORD    = 'root_password'
+        PYTHONPATH     = "${WORKSPACE}"
         // 从 Jenkins Credentials 注入（敏感信息）
         WOO_KEY        = credentials('WOO_KEY')
         WOO_SECRET     = credentials('WOO_SECRET')
