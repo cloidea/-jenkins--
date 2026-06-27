@@ -35,6 +35,12 @@ pipeline {
         stage('Setup Test Infrastructure') {
             steps {
                 script {
+                    // Docker Hub 登录，避免未认证拉取速率限制
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials',
+                                                      usernameVariable: 'DH_USER',
+                                                      passwordVariable: 'DH_PASS')]) {
+                        sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
+                    }
                     // 强制删除同名旧容器（不管来自哪个 compose 项目）
                     sh 'docker rm -f wc_db wc_site 2>/dev/null || true'
                     sh 'docker compose up -d'
