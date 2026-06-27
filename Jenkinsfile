@@ -123,6 +123,9 @@ pipeline {
                                 echo "ERROR: WooCommerce 安装失败"; exit 1
                             fi
                             docker exec wc_site wp rewrite flush --allow-root --path=/var/www/html
+                            # 数据库迁移，创建 WooCommerce 所需表
+                            docker exec wc_site wp woocommerce install --allow-root --path=/var/www/html
+                            docker exec wc_site wp woocommerce update-db --allow-root --path=/var/www/html
                             sleep 3
                             if docker exec wc_site wp plugin is-active woocommerce --allow-root --path=/var/www/html; then
                                 echo "WooCommerce 激活确认 OK"
@@ -136,7 +139,8 @@ pipeline {
                     sh '''
                         echo "=== 校验 REST API ==="
                         resp=$(curl -s http://host.docker.internal:8080/wp-json/wc/v3/ 2>/dev/null | head -c 200)
-                        if echo "$resp" | grep -q '"namespace":"wc/v3"'; then
+                        # 去掉 JSON 转义反斜杠再匹配（API 返回 wc\/v3 非 wc/v3）
+                        if echo "$resp" | sed 's/\\//g' | grep -q '"namespace":"wc/v3"'; then
                             echo "WC API v3 路由已生效，开始测试"
                         else
                             echo "ERROR: WC API 不可用"
