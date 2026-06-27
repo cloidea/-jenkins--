@@ -45,19 +45,27 @@ pipeline {
                     }
                     // 强制删除同名旧容器（不管来自哪个 compose 项目）
                     sh 'docker rm -f wc_db wc_site 2>/dev/null || true'
-                    sh 'docker compose up -d'
+                    // 加载 CI 覆盖文件，让 WP/MySQL 接入 jenkins-net，与测试容器同网络
+                    sh 'docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d'
 
                     sh '''
                         echo "等待 WordPress 启动..."
-                        for i in $(seq 1 36); do
-                            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://wc_site 2>/dev/null || echo "000")
-                            if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ]; then
-                                echo "WordPress 已就绪 (HTTP $STATUS)"
+                        max_times=36
+                        final_status=""
+                        for i in $(seq 1 $max_times); do
+                            final_status=$(curl -s -o /dev/null -w "%{http_code}" http://wc_site 2>/dev/null || echo "000")
+                            if [ "$final_status" = "200" ] || [ "$final_status" = "302" ]; then
+                                echo "WordPress 已就绪 (HTTP $final_status)"
                                 break
                             fi
-                            echo "   等待中... ($i/36)"
+                            echo "   等待中... ($i/$max_times)"
                             sleep 5
                         done
+                        # 超时直接终止，避免带着无效环境跑测试
+                        if [ "$final_status" != "200" ] && [ "$final_status" != "302" ]; then
+                            echo "等待 3 分钟后 WordPress 仍无法访问，构建终止"
+                            exit 1
+                        fi
                     '''
                 }
             }
