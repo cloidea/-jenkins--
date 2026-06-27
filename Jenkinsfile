@@ -37,6 +37,20 @@ pipeline {
                     sh 'docker rm -f wc_db wc_site 2>/dev/null || true'
                     sh 'docker compose up -d'
 
+                    // MySQL 权限修复：允许 root 从任意主机（含 host.docker.internal）密码登录
+                    sh '''
+                        echo "=== 等待 MySQL 就绪 ==="
+                        until docker exec wc_db mysqladmin ping -h localhost --silent 2>/dev/null; do
+                            sleep 2
+                        done
+                        docker exec wc_db mysql -u root -proot_password -e "
+                            ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root_password';
+                            GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+                            FLUSH PRIVILEGES;
+                        " 2>/dev/null
+                        echo "MySQL 权限已配置"
+                    '''
+
                     // ========================================
                     // 阶段 1: 等待容器响应
                     // ========================================
@@ -92,6 +106,15 @@ pipeline {
                                 exit 1
                             fi
                             echo "WordPress 安装完成"
+
+                            # 安装并激活 WooCommerce 插件（API 路由 wc/v3 依赖此插件）
+                            echo "安装 WooCommerce 插件..."
+                            docker exec wc_site wp plugin install woocommerce --activate --allow-root --path="/var/www/html"
+                            if [ $? -ne 0 ]; then
+                                echo "ERROR: WooCommerce 安装失败"
+                                exit 1
+                            fi
+                            echo "WooCommerce 安装并激活完成"
                         fi
                     '''
 
