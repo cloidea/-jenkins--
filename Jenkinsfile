@@ -135,12 +135,11 @@ pipeline {
                         fi
                     '''
 
-                    // ---- 最终校验 REST API ----
+                    // 校验 REST API — 用 wc.v3 通配避免 Groovy 反斜杠转义冲突
                     sh '''
                         echo "=== 校验 REST API ==="
                         resp=$(curl -s http://host.docker.internal:8080/wp-json/wc/v3/ 2>/dev/null | head -c 200)
-                        # 去掉 JSON 转义反斜杠再匹配（API 返回 wc\/v3 非 wc/v3）
-                        if echo "$resp" | sed 's/\\//g' | grep -q '"namespace":"wc/v3"'; then
+                        if echo "$resp" | grep -q '"namespace":"wc.v3"'; then
                             echo "WC API v3 路由已生效，开始测试"
                         else
                             echo "ERROR: WC API 不可用"
